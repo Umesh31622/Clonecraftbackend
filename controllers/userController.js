@@ -61,50 +61,60 @@
 //   } catch (err) {
 //     res.status(500).json({ success: false, message: err.message });
 //   }
+// // };
+// const User = require("../models/User");
+
+// exports.getUsers = async (req, res) => {
+//   try {
+//     const users = await User.find().select("-otp -otpExpires");
+//     res.json({ success: true, users });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// exports.getUser = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.params.id).select("-otp -otpExpires");
+//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
+//     res.json({ success: true, user });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// exports.createUser = async (req, res) => {
+//   try {
+//     const user = await User.create(req.body);
+//     res.json({ success: true, user });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// exports.updateUser = async (req, res) => {
+//   try {
+//     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+//     res.json({ success: true, user });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// exports.deleteUser = async (req, res) => {
+//   try {
+//     await User.findByIdAndDelete(req.params.id);
+//     res.json({ success: true, message: "User deleted" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
 // };
 const User = require("../models/User");
 
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-otp -otpExpires");
+    const users = await User.find().select("-otp -otpExpires -password");
     res.json({ success: true, users });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-exports.getUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select("-otp -otpExpires");
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    res.json({ success: true, user });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-exports.createUser = async (req, res) => {
-  try {
-    const user = await User.create(req.body);
-    res.json({ success: true, user });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-exports.updateUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ success: true, user });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-exports.deleteUser = async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "User deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
