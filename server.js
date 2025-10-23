@@ -72,6 +72,7 @@
 //   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 // };
 // startServer();
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -88,7 +89,7 @@ const authRoutes = require("./routes/auth");
 const adminAuthRoutes = require("./routes/adminAuth");
 const dashboardRoutes = require("./routes/dashboard");
 const subscriptionsRoutes = require("./routes/subscriptions");
-
+const politicianRoutes = require("./routes/politicianRoutes");
 const app = express();
 
 // Middleware
@@ -132,7 +133,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
-
+app.use("/api/politicians", politicianRoutes);
 // Test Route
 app.get("/", (req, res) => res.json({ message: "✅ API Running..." }));
 
