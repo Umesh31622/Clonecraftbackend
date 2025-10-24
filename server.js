@@ -90,6 +90,8 @@ const adminAuthRoutes = require("./routes/adminAuth");
 const dashboardRoutes = require("./routes/dashboard");
 const subscriptionsRoutes = require("./routes/subscriptions");
 const politicianRoutes = require("./routes/politicianRoutes");
+const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
+const politicianTemplateRoutes = require('./routes/PoliticianTemplateRoutes');
 const app = express();
 
 // Middleware
@@ -134,6 +136,11 @@ app.use("/api/templates", templateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/politicians", politicianRoutes);
+
+app.use("/api/user-analytics", userAnalyticsRoutes);
+
+app.use('/api/politician-templates', politicianTemplateRoutes);
+
 // Test Route
 app.get("/", (req, res) => res.json({ message: "✅ API Running..." }));
 

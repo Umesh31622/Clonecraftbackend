@@ -1,121 +1,131 @@
 
 // const User = require("../models/User");
 
-// // GET all users
 // exports.getUsers = async (req, res) => {
 //   try {
-//     const users = await User.find().sort({ createdAt: -1 });
+//     const users = await User.find().select("-otp -otpExpires -password");
 //     res.json({ success: true, users });
 //   } catch (err) {
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // };
-
-// // GET single user
-// exports.getUser = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-//     res.json({ success: true, user });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // CREATE user
-// exports.createUser = async (req, res) => {
-//   try {
-//     const { name, email, subscription, status } = req.body;
-//     const exists = await User.findOne({ email });
-//     if (exists) return res.status(400).json({ success: false, message: "Email already exists" });
-
-//     const user = await User.create({ name, email, subscription, status });
-//     res.json({ success: true, user });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // UPDATE user
-// exports.updateUser = async (req, res) => {
-//   try {
-//     const { name, email, subscription, status } = req.body;
-//     const updated = await User.findByIdAndUpdate(
-//       req.params.id,
-//       { name, email, subscription, status },
-//       { new: true }
-//     );
-//     if (!updated) return res.status(404).json({ success: false, message: "User not found" });
-//     res.json({ success: true, user: updated });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // DELETE user
-// exports.deleteUser = async (req, res) => {
-//   try {
-//     const deleted = await User.findByIdAndDelete(req.params.id);
-//     if (!deleted) return res.status(404).json({ success: false, message: "User not found" });
-//     res.json({ success: true, message: "User deleted" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// // };
-// const User = require("../models/User");
-
-// exports.getUsers = async (req, res) => {
-//   try {
-//     const users = await User.find().select("-otp -otpExpires");
-//     res.json({ success: true, users });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// exports.getUser = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id).select("-otp -otpExpires");
-//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-//     res.json({ success: true, user });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// exports.createUser = async (req, res) => {
-//   try {
-//     const user = await User.create(req.body);
-//     res.json({ success: true, user });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// exports.updateUser = async (req, res) => {
-//   try {
-//     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-//     res.json({ success: true, user });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// exports.deleteUser = async (req, res) => {
-//   try {
-//     await User.findByIdAndDelete(req.params.id);
-//     res.json({ success: true, message: "User deleted" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
+const cloudinary = require("cloudinary").v2;
 const User = require("../models/User");
 
+// Cloudinary config (reads from .env)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+/**
+ * GET /api/users
+ * Returns all users (excluding sensitive fields)
+ */
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-otp -otpExpires -password");
     res.json({ success: true, users });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/users/:id
+ * Get single user by id (or email if you prefer)
+ */
+exports.getUserById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findById(id).select("-otp -otpExpires -password");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * PUT /api/users/profile
+ * Update profile of the logged in user (protected)
+ * Supports:
+ *  - multipart/form-data file under 'avatar' (multer)
+ *  - or JSON body 'image' containing base64 data URI
+ * Body allowed: name, userTag, email, bio, premium (boolean), stats (partial)
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    // assuming protect middleware attaches req.user with id/email
+    const userId = req.user && req.user._id ? req.user._id : req.body.userId;
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const updates = {};
+    const allowedFields = ["name", "userTag", "email", "bio", "premium"];
+    allowedFields.forEach((f) => {
+      if (req.body[f] !== undefined) updates[f] = req.body[f];
+    });
+
+    // merge stats updates if provided
+    if (req.body.stats && typeof req.body.stats === "object") {
+      // Use $inc or overwrite? We'll overwrite provided numeric fields
+      updates.stats = {};
+      const statFields = ["createdCount", "sharedCount", "downloadCount", "savedTemplates"];
+      statFields.forEach((s) => {
+        if (req.body.stats[s] !== undefined) updates.stats[s] = req.body.stats[s];
+      });
+    }
+
+    // Image handling:
+    // Option A: base64 image in req.body.image (data URI)
+    // Option B: uploaded file via multer at req.file (buffer or path)
+    let avatarUrl;
+    if (req.body.image) {
+      // image is expected as data:image/png;base64,xxxxx...
+      const uploadRes = await cloudinary.uploader.upload(req.body.image, {
+        folder: "user_profiles",
+        transformation: [{ width: 600, height: 600, crop: "limit" }],
+      });
+      avatarUrl = uploadRes.secure_url;
+    } else if (req.file) {
+      // req.file.buffer (if using multer memoryStorage) or req.file.path (if disk)
+      // We'll attempt to use upload_stream if buffer present, otherwise upload by path.
+      if (req.file.buffer) {
+        // upload from buffer
+        const streamUpload = (buffer) => {
+          return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { folder: "user_profiles", transformation: [{ width: 600, height: 600, crop: "limit" }] },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              }
+            );
+            stream.end(buffer);
+          });
+        };
+        const uploaded = await streamUpload(req.file.buffer);
+        avatarUrl = uploaded.secure_url;
+      } else if (req.file.path) {
+        // fallback if disk storage is used
+        const uploaded = await cloudinary.uploader.upload(req.file.path, {
+          folder: "user_profiles",
+          transformation: [{ width: 600, height: 600, crop: "limit" }],
+        });
+        avatarUrl = uploaded.secure_url;
+      }
+    }
+
+    if (avatarUrl) updates.avatarUrl = avatarUrl;
+
+    // Update user
+    const updated = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, upsert: false })
+      .select("-otp -otpExpires -password");
+
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error("updateProfile error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
