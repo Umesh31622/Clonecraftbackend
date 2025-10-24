@@ -86,6 +86,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const templateRoutes = require("./routes/templateRoutes");
 const usersRoutes = require("./routes/users");
 const authRoutes = require("./routes/auth");
+const userTemplateRoutes = require("./routes/userTemplateRoutes");
 const adminAuthRoutes = require("./routes/adminAuth");
 const dashboardRoutes = require("./routes/dashboard");
 const subscriptionsRoutes = require("./routes/subscriptions");
@@ -136,6 +137,10 @@ app.use("/api/templates", templateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/politicians", politicianRoutes);
+
+
+// existing code ke niche
+app.use("/api/user/templates", userTemplateRoutes);
 
 app.use("/api/user-analytics", userAnalyticsRoutes);
 
