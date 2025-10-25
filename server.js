@@ -1,3 +1,4 @@
+
 // require("dotenv").config();
 // const express = require("express");
 // const mongoose = require("mongoose");
@@ -6,15 +7,18 @@
 // const morgan = require("morgan");
 // const path = require("path");
 
-// // Routes
+// // Import Routes
 // const categoryRoutes = require("./routes/categoryRoutes");
 // const templateRoutes = require("./routes/templateRoutes");
 // const usersRoutes = require("./routes/users");
 // const authRoutes = require("./routes/auth");
+// const userTemplateRoutes = require("./routes/userTemplateRoutes");
 // const adminAuthRoutes = require("./routes/adminAuth");
 // const dashboardRoutes = require("./routes/dashboard");
 // const subscriptionsRoutes = require("./routes/subscriptions");
-
+// const politicianRoutes = require("./routes/politicianRoutes");
+// const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
+// const politicianTemplateRoutes = require('./routes/PoliticianTemplateRoutes');
 // const app = express();
 
 // // Middleware
@@ -32,14 +36,17 @@
 
 // if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 
-// // Static files
+// // Static Folder for Uploaded Files
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // // MongoDB Connection
-// mongoose.set('strictQuery', false);
+// mongoose.set("strictQuery", false);
 // const connectDB = async () => {
 //   try {
-//     await mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+//     await mongoose.connect(process.env.MONGODB_URI, {
+//       useNewUrlParser: true,
+//       useUnifiedTopology: true,
+//     });
 //     console.log("✅ MongoDB Connected");
 //   } catch (err) {
 //     console.error("❌ DB Connection Error:", err.message);
@@ -48,24 +55,37 @@
 // };
 
 // // Routes
-// app.use("/api/auth", authRoutes);           // User
-// app.use("/api/admin", adminAuthRoutes);     // Admin
-// app.use("/api/users", usersRoutes);         // User management
+// app.use("/api/auth", authRoutes);
+// app.use("/api/admin", adminAuthRoutes);
+// app.use("/api/users", usersRoutes);
 // app.use("/api/categories", categoryRoutes);
 // app.use("/api/templates", templateRoutes);
 // app.use("/api/dashboard", dashboardRoutes);
 // app.use("/api/subscriptions", subscriptionsRoutes);
+// app.use("/api/politicians", politicianRoutes);
 
-// // Test route
+
+// // existing code ke niche
+// app.use("/api/user/templates", userTemplateRoutes);
+
+// app.use("/api/user-analytics", userAnalyticsRoutes);
+
+// app.use('/api/politician-templates', politicianTemplateRoutes);
+
+// // Test Route
 // app.get("/", (req, res) => res.json({ message: "✅ API Running..." }));
 
-// // Error Handling
+// // Global Error Handling
 // app.use((err, req, res, next) => {
 //   console.error("❌ Server Error:", err.stack);
-//   res.status(500).json({ success: false, message: "Something went wrong", error: err.message });
+//   res.status(500).json({
+//     success: false,
+//     message: "Something went wrong",
+//     error: err.message,
+//   });
 // });
 
-// // Start server
+// // Start Server
 // const PORT = process.env.PORT || 7000;
 // const startServer = async () => {
 //   await connectDB();
@@ -93,18 +113,33 @@ const subscriptionsRoutes = require("./routes/subscriptions");
 const politicianRoutes = require("./routes/politicianRoutes");
 const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
 const politicianTemplateRoutes = require('./routes/PoliticianTemplateRoutes');
+
 const app = express();
+
+// Allowed frontend URLs
+const allowedOrigins = [
+  "http://localhost:3000", // Local dev
+  "https://clonecrafr.vercel.app" // Live frontend
+];
 
 // Middleware
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "https://clonecrafr.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true); // Postman or mobile apps
+    if(allowedOrigins.indexOf(origin) === -1){
+      return callback(new Error("CORS Error! Origin not allowed"), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: true
+}));
+
+// Preflight handling for OPTIONS requests
+app.options("*", cors());
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -137,14 +172,9 @@ app.use("/api/templates", templateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/politicians", politicianRoutes);
-
-
-// existing code ke niche
 app.use("/api/user/templates", userTemplateRoutes);
-
 app.use("/api/user-analytics", userAnalyticsRoutes);
-
-app.use('/api/politician-templates', politicianTemplateRoutes);
+app.use("/api/politician-templates", politicianTemplateRoutes);
 
 // Test Route
 app.get("/", (req, res) => res.json({ message: "✅ API Running..." }));
@@ -165,4 +195,5 @@ const startServer = async () => {
   await connectDB();
   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 };
+
 startServer();
