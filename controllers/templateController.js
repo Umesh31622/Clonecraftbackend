@@ -1,6 +1,5 @@
 
 // const Template = require("../models/templateModel");
-// const cloudinary = require("../config/cloudinary");
 
 // // GET all templates
 // exports.getTemplates = async (req, res) => {
@@ -15,7 +14,7 @@
 //   }
 // };
 
-// // CREATE a template
+// // CREATE template
 // exports.createTemplate = async (req, res) => {
 //   try {
 //     const { title, type, status, category, politician, profilePosition, transitionType, orientation } = req.body;
@@ -26,14 +25,11 @@
 
 //     let fileUrl;
 //     if (req.file) {
-//       const result = await cloudinary.uploader.upload(req.file.path, {
-//         resource_type: type === "video" ? "video" : "image",
-//         folder: "templates",
-//       });
-//       fileUrl = result.secure_url;
+//       fileUrl = req.file.path || req.file.filename || req.file?.secure_url;
 //     }
 
-//     // Create template
+//     if (!fileUrl) return res.status(400).json({ success: false, message: "File is required" });
+
 //     let template = await Template.create({
 //       title,
 //       type,
@@ -46,7 +42,6 @@
 //       file: fileUrl,
 //     });
 
-//     // Populate after creation
 //     template = await Template.findById(template._id)
 //       .populate("category")
 //       .populate("politician");
@@ -69,11 +64,7 @@
 
 //     let fileUrl;
 //     if (req.file) {
-//       const result = await cloudinary.uploader.upload(req.file.path, {
-//         resource_type: type === "video" ? "video" : "image",
-//         folder: "templates",
-//       });
-//       fileUrl = result.secure_url;
+//       fileUrl = req.file.path || req.file.filename || req.file?.secure_url;
 //     }
 
 //     let updated = await Template.findByIdAndUpdate(
@@ -114,14 +105,28 @@
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // };
+// controllers/templateController.js
+
 const Template = require("../models/templateModel");
+
+/**
+ * Helper to get uploaded file URL from multer-storage-cloudinary or local multer.
+ * multer-storage-cloudinary may put URL in req.file.path or req.file?.secure_url
+ */
+const getFileUrlFromReq = (file) => {
+  if (!file) return null;
+  return file.path || file.secure_url || file.filename || null;
+};
 
 // GET all templates
 exports.getTemplates = async (req, res) => {
   try {
     const templates = await Template.find()
       .populate("category")
-      .populate("politician");
+      .populate("politician")
+      .populate("frame")
+      .sort({ createdAt: -1 });
+
     res.json({ success: true, templates });
   } catch (err) {
     console.error("❌ Get Templates Error:", err);
@@ -132,17 +137,27 @@ exports.getTemplates = async (req, res) => {
 // CREATE template
 exports.createTemplate = async (req, res) => {
   try {
-    const { title, type, status, category, politician, profilePosition, transitionType, orientation } = req.body;
+    const {
+      title,
+      type,
+      status,
+      category,
+      politician,
+      profilePosition,
+      transitionType,
+      orientation,
+      frame,
+      transitionPlacement,
+    } = req.body;
 
     if (!title || !type || (!category && !politician)) {
       return res.status(400).json({ success: false, message: "Title, Type and either Category or Politician are required" });
     }
 
-    let fileUrl;
-    if (req.file) {
-      fileUrl = req.file.path || req.file.filename || req.file?.secure_url;
-    }
+    // Accept file either from local multer or Cloudinary storage middleware
+    const fileUrl = getFileUrlFromReq(req.file);
 
+    // File is optional only in update situations, but create expects file by your earlier logic.
     if (!fileUrl) return res.status(400).json({ success: false, message: "File is required" });
 
     let template = await Template.create({
@@ -151,6 +166,8 @@ exports.createTemplate = async (req, res) => {
       status: status || "active",
       category: category || undefined,
       politician: politician || undefined,
+      frame: frame || undefined,
+      transitionPlacement: transitionPlacement || "below",
       profilePosition: profilePosition || "center",
       transitionType: transitionType || "fade",
       orientation: orientation || "landscape",
@@ -159,7 +176,8 @@ exports.createTemplate = async (req, res) => {
 
     template = await Template.findById(template._id)
       .populate("category")
-      .populate("politician");
+      .populate("politician")
+      .populate("frame");
 
     res.json({ success: true, template });
   } catch (err) {
@@ -171,34 +189,47 @@ exports.createTemplate = async (req, res) => {
 // UPDATE template
 exports.updateTemplate = async (req, res) => {
   try {
-    const { title, type, status, category, politician, profilePosition, transitionType, orientation } = req.body;
+    const {
+      title,
+      type,
+      status,
+      category,
+      politician,
+      profilePosition,
+      transitionType,
+      orientation,
+      frame,
+      transitionPlacement,
+    } = req.body;
 
     if (!title || !type || (!category && !politician)) {
       return res.status(400).json({ success: false, message: "Title, Type and either Category or Politician are required" });
     }
 
-    let fileUrl;
-    if (req.file) {
-      fileUrl = req.file.path || req.file.filename || req.file?.secure_url;
-    }
+    const fileUrl = getFileUrlFromReq(req.file);
 
-    let updated = await Template.findByIdAndUpdate(
+    const updateBody = {
+      title,
+      type,
+      status,
+      category: category || undefined,
+      politician: politician || undefined,
+      frame: frame || undefined,
+      transitionPlacement: transitionPlacement || "below",
+      profilePosition,
+      transitionType,
+      orientation,
+      ...(fileUrl && { file: fileUrl }),
+    };
+
+    const updated = await Template.findByIdAndUpdate(
       req.params.id,
-      {
-        title,
-        type,
-        status,
-        category: category || undefined,
-        politician: politician || undefined,
-        profilePosition,
-        transitionType,
-        orientation,
-        ...(fileUrl && { file: fileUrl }),
-      },
+      updateBody,
       { new: true, runValidators: true }
     )
       .populate("category")
-      .populate("politician");
+      .populate("politician")
+      .populate("frame");
 
     if (!updated) return res.status(404).json({ success: false, message: "Template not found" });
 
@@ -214,6 +245,7 @@ exports.deleteTemplate = async (req, res) => {
   try {
     const deleted = await Template.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ success: false, message: "Template not found" });
+    // NOTE: this only deletes DB record. If you want remove file from Cloudinary, use cloudinary.uploader.destroy(public_id)
     res.json({ success: true, message: "Template deleted successfully" });
   } catch (err) {
     console.error("❌ Delete Template Error:", err);
