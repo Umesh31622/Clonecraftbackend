@@ -376,6 +376,9 @@ const frameRoutes = require("./routes/frameRoutes");
 const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
 const politicianTemplateRoutes = require("./routes/PoliticianTemplateRoutes");
 const creationRoutes = require("./routes/creationRoutes");
+const religiousRoutes = require("./routes/religiousRoutes");
+const reportsRoutes = require("./routes/reportsRoutes");
+
 
 // ===== Register API Routes =====
 app.use("/api/auth", authRoutes);
@@ -391,7 +394,8 @@ app.use("/api/user/templates", userTemplateRoutes);
 app.use("/api/user-analytics", userAnalyticsRoutes);
 app.use("/api/politician-templates", politicianTemplateRoutes);
 app.use("/api/creations", creationRoutes); // ✅ New route
-
+app.use("/api/religious", religiousRoutes);
+app.use("/api/reports", reportsRoutes);
 // ===== Test Route =====
 app.get("/", (req, res) => {
   res.json({ message: "✅ API Running..." });
