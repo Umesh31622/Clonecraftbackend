@@ -1,4 +1,5 @@
 const UserAnalytics = require("../models/UserAnalytics");
+<<<<<<< HEAD
 const cloudinary = require("../config/cloudinary");
 
 // 🔹 Get all analytics (Admin Panel)
@@ -77,10 +78,25 @@ exports.createUserAnalytics = async (req, res) => {
     res.status(201).json({ success: true, data: newAnalytics });
   } catch (err) {
     console.error("❌ Error creating analytics:", err);
+=======
+
+// Get analytics for a user
+const getUserAnalytics = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    let analytics = await UserAnalytics.findOne({ userId });
+    if (!analytics) {
+      analytics = await UserAnalytics.create({ userId });
+    }
+    res.json({ success: true, data: analytics });
+  } catch (err) {
+    console.error(err);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
     res.status(500).json({ success: false, message: "Server Error", error: err.message });
   }
 };
 
+<<<<<<< HEAD
 // 🔹 Update existing analytics
 exports.updateUserAnalytics = async (req, res) => {
   try {
@@ -110,10 +126,18 @@ exports.incrementDownloads = async (req, res) => {
   try {
     const { userId } = req.params;
     const updated = await UserAnalytics.findOneAndUpdate(
+=======
+// Increment downloads
+const incrementDownloads = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const analytics = await UserAnalytics.findOneAndUpdate(
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
       { userId },
       { $inc: { downloads: 1 } },
       { new: true, upsert: true }
     );
+<<<<<<< HEAD
     res.json({ success: true, data: updated });
   } catch (err) {
     console.error("❌ Error incrementing downloads:", err);
@@ -126,13 +150,42 @@ exports.incrementShares = async (req, res) => {
   try {
     const { userId } = req.params;
     const updated = await UserAnalytics.findOneAndUpdate(
+=======
+    res.json({ success: true, data: analytics });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error", error: err.message });
+  }
+};
+
+// Increment shares
+const incrementShares = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const analytics = await UserAnalytics.findOneAndUpdate(
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
       { userId },
       { $inc: { shares: 1 } },
       { new: true, upsert: true }
     );
+<<<<<<< HEAD
     res.json({ success: true, data: updated });
   } catch (err) {
     console.error("❌ Error incrementing shares:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+=======
+    res.json({ success: true, data: analytics });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error", error: err.message });
+  }
+};
+
+module.exports = {
+  getUserAnalytics,
+  incrementDownloads,
+  incrementShares
+};
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // const express = require("express");
 // const router = express.Router();
 // const multer = require("multer");
@@ -11,11 +12,33 @@
 //   params: {
 //     folder: "categories",
 //     allowed_formats: ["jpg", "jpeg", "png", "webp"],
+=======
+
+// const express = require("express");
+// const router = express.Router();
+// const multer = require("multer");
+// const path = require("path");
+// const {
+//   getCategories,
+//   createCategory,
+//   updateCategory,
+//   deleteCategory,
+// } = require("../controllers/categoryController");
+
+// // ✅ File upload setup
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, path.join(__dirname, "../uploads"));
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, Date.now() + "-" + file.originalname);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
 //   },
 // });
 
 // const upload = multer({ storage });
 
+<<<<<<< HEAD
 // // Create category
 // router.post("/", upload.single("file"), async (req, res) => {
 //   try {
@@ -69,6 +92,13 @@
 //     res.status(500).json({ message: "Server Error" });
 //   }
 // });
+=======
+// // ✅ Routes
+// router.get("/", getCategories);
+// router.post("/", upload.single("file"), createCategory);
+// router.put("/:id", upload.single("file"), updateCategory);
+// router.delete("/:id", deleteCategory);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
 
 // module.exports = router;
 const express = require("express");
@@ -78,9 +108,15 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 const Category = require("../models/categoryModel");
 
+<<<<<<< HEAD
 // Cloudinary setup
 const storage = new CloudinaryStorage({
   cloudinary,
+=======
+// Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
   params: {
     folder: "categories",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
@@ -89,6 +125,7 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
+<<<<<<< HEAD
 // Create Category
 router.post("/", upload.single("file"), async (req, res) => {
   try {
@@ -109,22 +146,43 @@ router.post("/", upload.single("file"), async (req, res) => {
     res.status(201).json(populated);
   } catch (err) {
     console.error(err);
+=======
+// Create category
+router.post("/", upload.single("file"), async (req, res) => {
+  try {
+    const { name, orientation, status } = req.body;
+    const filePath = req.file ? req.file.path : null;
+
+    const newCategory = new Category({ name, orientation, status, filePath });
+    await newCategory.save();
+    res.status(201).json(newCategory);
+  } catch (err) {
+    console.log(err);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
     res.status(500).json({ message: "Server Error" });
   }
 });
 
+<<<<<<< HEAD
 // Get All Categories
 router.get("/", async (req, res) => {
   try {
     const categories = await Category.find()
       .populate("religious")
       .populate("language");
+=======
+// Get all categories
+router.get("/", async (req, res) => {
+  try {
+    const categories = await Category.find();
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
     res.json(categories);
   } catch (err) {
     res.status(500).json({ message: "Server Error" });
   }
 });
 
+<<<<<<< HEAD
 // Update
 router.put("/:id", upload.single("file"), async (req, res) => {
   try {
@@ -143,20 +201,47 @@ router.put("/:id", upload.single("file"), async (req, res) => {
     res.json(updated);
   } catch (err) {
     console.error(err);
+=======
+// Update category
+router.put("/:id", upload.single("file"), async (req, res) => {
+  try {
+    const { name, orientation, status } = req.body;
+    const updateData = { name, orientation, status };
+
+    if (req.file) updateData.filePath = req.file.path;
+
+    const updated = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!updated) return res.status(404).json({ message: "Category not found" });
+    res.json(updated);
+  } catch (err) {
+    console.log(err);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
     res.status(500).json({ message: "Server Error" });
   }
 });
 
+<<<<<<< HEAD
 // Delete
+=======
+// Delete category
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
 router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Category.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Category not found" });
     res.json({ message: "Category deleted successfully" });
   } catch (err) {
+<<<<<<< HEAD
     console.error(err);
+=======
+    console.log(err);
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
     res.status(500).json({ message: "Server Error" });
   }
 });
 
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router;
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e

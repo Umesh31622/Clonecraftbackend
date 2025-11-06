@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+<<<<<<< HEAD
 const userAnalyticsSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -21,5 +22,12 @@ const userAnalyticsSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+=======
+const userAnalyticsSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  downloads: { type: Number, default: 0 },
+  shares: { type: Number, default: 0 },
+}, { timestamps: true });
+>>>>>>> 81e715d1eeddd672021ea025730ba6c7d5f8447e
 
 module.exports = mongoose.model("UserAnalytics", userAnalyticsSchema);
