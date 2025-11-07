@@ -485,7 +485,7 @@ const dashboardRoutes = require("./routes/dashboard");
 const subscriptionsRoutes = require("./routes/subscriptions");
 const politicianRoutes = require("./routes/politicianRoutes");
 const frameRoutes = require("./routes/frameRoutes");
-const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
+// const userAnalyticsRoutes = require("./routes/userAnalyticsRoutes");
 const politicianTemplateRoutes = require("./routes/PoliticianTemplateRoutes");
 const creationRoutes = require("./routes/creationRoutes");
 const religiousRoutes = require("./routes/religiousRoutes");
@@ -503,7 +503,7 @@ app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/politicians", politicianRoutes);
 app.use("/api/frames", frameRoutes);
 app.use("/api/user/templates", userTemplateRoutes);
-app.use("/api/user-analytics", userAnalyticsRoutes);
+// app.use("/api/user-analytics", userAnalyticsRoutes);
 app.use("/api/politician-templates", politicianTemplateRoutes);
 app.use("/api/creations", creationRoutes); // ✅ New route
 app.use("/api/religious", religiousRoutes);
