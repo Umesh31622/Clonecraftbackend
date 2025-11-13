@@ -162,8 +162,13 @@
 //   }
 // };
 // controllers/templateController.js
+// controllers/templateController.js
 const Template = require("../models/templateModel");
 const cloudinary = require("../config/cloudinary");
+
+const Category = require("../models/categoryModel");
+const Politician = require("../models/politicianModel");
+const Religious = require("../models/religiousModel");
 
 // helper to read uploaded file info from multer-storage-cloudinary
 const getFileInfo = (filesObj, fieldName) => {
@@ -177,15 +182,12 @@ const getFileInfo = (filesObj, fieldName) => {
   };
 };
 
-const Category = require("../models/categoryModel");
-const Politician = require("../models/politicianModel");
-const Religious = require("../models/religiousModel");
-
 exports.getTemplates = async (req, res) => {
   try {
     let { page = 1, limit = 10, search = "" } = req.query;
     page = Number(page);
     limit = Number(limit);
+    if (!limit || limit <= 0) limit = 10;
     const skip = (page - 1) * limit;
 
     const query = {};
@@ -252,9 +254,9 @@ exports.createTemplate = async (req, res) => {
       orientation: orientation || "landscape",
       profileSize: profileSize || "",
       profileShape: profileShape || "circle",
-      file: mainFile?.url || null,
+      file: mainFile?.url || req.body.file || null,            // accept multer URL or direct URL
       filePublicId: mainFile?.public_id || null,
-      frameFile: frameFile?.url || null,
+      frameFile: frameFile?.url || req.body.frameFile || null, // accept multer URL or direct URL
       frameFilePublicId: frameFile?.public_id || null,
     });
 
@@ -282,11 +284,13 @@ exports.updateTemplate = async (req, res) => {
       body.file = mainFile.url;
       if (mainFile.public_id) body.filePublicId = mainFile.public_id;
     }
+
     if (frameFile?.url) {
       body.frameFile = frameFile.url;
       if (frameFile.public_id) body.frameFilePublicId = frameFile.public_id;
     }
 
+    // allow updating status via body, parent ids etc.
     const updated = await Template.findByIdAndUpdate(id, body, { new: true, runValidators: true })
       .populate("category")
       .populate("politician")
@@ -321,17 +325,35 @@ exports.deleteTemplate = async (req, res) => {
   }
 };
 
+// PATCH /:id/status
+exports.updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!["active", "inactive"].includes(status)) return res.status(400).json({ success: false, message: "Invalid status" });
+
+    const updated = await Template.findByIdAndUpdate(id, { status }, { new: true })
+      .populate("category")
+      .populate("politician")
+      .populate("religious");
+
+    if (!updated) return res.status(404).json({ success: false, message: "Template not found" });
+    return res.json({ success: true, template: updated });
+  } catch (err) {
+    console.error("Update status error", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // BULK DELETE
 exports.bulkDeleteTemplates = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: "No ids provided" });
 
-    // fetch documents to cleanup cloudinary
     const docs = await Template.find({ _id: { $in: ids } });
     await Template.deleteMany({ _id: { $in: ids } });
 
-    // try cleanup cloudinary
     for (const d of docs) {
       try {
         if (d.filePublicId) await cloudinary.uploader.destroy(d.filePublicId, { resource_type: "auto" });
@@ -348,7 +370,8 @@ exports.bulkDeleteTemplates = async (req, res) => {
   }
 };
 
-// IMPORT CSV (expects array of objects in req.body)
+// IMPORT CSV (accepts parsed array of objects in req.body)
+// expects fields: title,type,status,file,frameFile,parent,profilePosition,profileSize,profileShape,transitionPlacement,transitionType,orientation
 exports.importTemplatesFromCsv = async (req, res) => {
   try {
     const rows = req.body;
@@ -356,26 +379,22 @@ exports.importTemplatesFromCsv = async (req, res) => {
 
     const created = [];
     for (const r of rows) {
-      // map CSV fields: allow parent by name -> resolve to ids if possible
-      const title = r.title || r.Title || "";
+      const title = (r.title || r.Title || "").trim();
       if (!title) continue;
 
-      const type = r.type || r.Type || "video";
-      const status = r.status || r.Status || "active";
-      const profilePosition = r.profilePosition || r.profile_position || "";
-      const profileSize = r.profileSize || r.profile_size || "";
-      const profileShape = r.profileShape || r.profile_shape || "";
-      const transitionPlacement = r.transitionPlacement || r.transition_placement || "below";
-      const transitionType = r.transitionType || r.transition_type || "fade";
-      const orientation = r.orientation || "landscape";
+      const type = (r.type || r.Type || "video").trim();
+      const status = (r.status || r.Status || "active").trim();
+      const profilePosition = (r.profilePosition || r.profile_position || "").trim();
+      const profileSize = (r.profileSize || r.profile_size || "").trim();
+      const profileShape = (r.profileShape || r.profile_shape || "").trim();
+      const transitionPlacement = (r.transitionPlacement || r.transition_placement || "below").trim();
+      const transitionType = (r.transitionType || r.transition_type || "fade").trim();
+      const orientation = (r.orientation || "landscape").trim();
 
-      let categoryId = null;
-      let politicianId = null;
-      let religiousId = null;
-
+      // parent mapping by name
+      let categoryId = null, politicianId = null, religiousId = null;
       const parentVal = (r.parent || r.Parent || "").trim();
       if (parentVal) {
-        // try find in categories -> politicians -> religious by title/name
         const cat = await Category.findOne({ $or: [{ title: parentVal }, { name: parentVal }] }).lean();
         if (cat) categoryId = cat._id;
         else {
@@ -401,10 +420,12 @@ exports.importTemplatesFromCsv = async (req, res) => {
         transitionPlacement,
         transitionType,
         orientation,
+        file: r.file || r.file_url || r.fileUrl || null,
+        frameFile: r.frameFile || r.frame_file || r.frame_file_url || null,
       };
 
-      const createdTpl = await Template.create(doc);
-      created.push(createdTpl);
+      const tpl = await Template.create(doc);
+      created.push(tpl);
     }
 
     return res.json({ success: true, created: created.length });
@@ -413,3 +434,4 @@ exports.importTemplatesFromCsv = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
