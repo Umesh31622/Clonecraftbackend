@@ -184,7 +184,7 @@
 // router.delete("/:id", deleteTemplate);
 
 // module.exports = router;
-
+// routes/templateRoutes.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -196,6 +196,8 @@ const {
   createTemplate,
   updateTemplate,
   deleteTemplate,
+  bulkDeleteTemplates,
+  importTemplatesFromCsv
 } = require("../controllers/templateController");
 
 const storage = new CloudinaryStorage({
@@ -209,9 +211,15 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
+// routes
 router.get("/", getTemplates);
 router.post("/", upload.fields([{ name: "file", maxCount: 1 }, { name: "frameFile", maxCount: 1 }]), createTemplate);
 router.put("/:id", upload.fields([{ name: "file", maxCount: 1 }, { name: "frameFile", maxCount: 1 }]), updateTemplate);
 router.delete("/:id", deleteTemplate);
 
+// bulk delete & import routes
+router.post("/bulk-delete", bulkDeleteTemplates);
+router.post("/import-csv", express.json(), importTemplatesFromCsv);
+
 module.exports = router;
+
