@@ -324,10 +324,9 @@
 // };
 
 
-
 const Politician = require("../models/politicianModel");
 
-// CREATE Politician
+// CREATE
 exports.createPolitician = async (req, res) => {
   try {
     const { title, abbreviation, status, religious, language } = req.body;
@@ -342,23 +341,22 @@ exports.createPolitician = async (req, res) => {
       status,
       religious,
       language,
-      logo: req.file ? req.file.path : null,  // Cloudinary URL already here
+      logo: req.file ? req.file.path : null, // Cloudinary URL
     });
 
     res.status(201).json({ success: true, politician });
   } catch (error) {
+    console.error("Create Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// GET all
+// GET with pagination + search
 exports.getPoliticians = async (req, res) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
 
-    const query = search
-      ? { title: { $regex: search, $options: "i" } }
-      : {};
+    const query = search ? { title: { $regex: search, $options: "i" } } : {};
 
     const skip = (page - 1) * limit;
 
@@ -380,6 +378,7 @@ exports.getPoliticians = async (req, res) => {
       pages: Math.ceil(total / limit),
     });
   } catch (error) {
+    console.error("Fetch Error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch politicians" });
   }
 };
@@ -389,20 +388,15 @@ exports.updatePolitician = async (req, res) => {
   try {
     const { title, abbreviation, status, religious, language } = req.body;
 
-    const updateData = {
-      title,
-      abbreviation,
-      status,
-      religious,
-      language,
-    };
+    const updateData = { title, abbreviation, status, religious, language };
 
     if (req.file) updateData.logo = req.file.path;
 
     const updated = await Politician.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
     res.json({ success: true, politician: updated });
-  } catch {
+  } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ success: false, message: "Update failed" });
   }
 };
@@ -411,8 +405,10 @@ exports.updatePolitician = async (req, res) => {
 exports.deletePolitician = async (req, res) => {
   try {
     await Politician.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Deleted" });
-  } catch {
+    res.json({ success: true, message: "Politician deleted" });
+  } catch (error) {
+    console.error("Delete Error:", error);
     res.status(500).json({ success: false, message: "Delete failed" });
   }
 };
+
