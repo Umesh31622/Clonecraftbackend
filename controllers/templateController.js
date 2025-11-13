@@ -710,13 +710,11 @@
 // };
 
 // controllers/templateController.js
+// controllers/templateController.js
 const Template = require("../models/templateModel");
 const cloudinary = require("../config/cloudinary");
 
-/**
- * helper to read uploaded file info from multer-storage-cloudinary or a regular multer + uploader
- * multer-storage-cloudinary returns file.path (url) and file.filename (public id) typically
- */
+// helper to read uploaded file info from multer-storage-cloudinary
 const getFileInfo = (filesObj, fieldName) => {
   if (!filesObj) return null;
   const arr = filesObj[fieldName];
@@ -727,6 +725,10 @@ const getFileInfo = (filesObj, fieldName) => {
     public_id: f.filename || f.public_id || f.publicId || null,
   };
 };
+
+const Category = require("../models/categoryModel");
+const Politician = require("../models/politicianModel");
+const Religious = require("../models/religiousModel");
 
 exports.getTemplates = async (req, res) => {
   try {
@@ -756,7 +758,7 @@ exports.getTemplates = async (req, res) => {
       templates,
       total,
       page,
-      pages: Math.ceil(total / limit) || 1,
+      pages: Math.max(1, Math.ceil(total / limit)),
     });
   } catch (err) {
     console.error("Get Templates Error:", err);
@@ -783,7 +785,6 @@ exports.createTemplate = async (req, res) => {
 
     if (!title) return res.status(400).json({ success: false, message: "Title required" });
 
-    // get file info (works with multer-storage-cloudinary or multer + manual upload)
     const mainFile = getFileInfo(req.files, "file");
     const frameFile = getFileInfo(req.files, "frameFile");
 
@@ -854,14 +855,10 @@ exports.deleteTemplate = async (req, res) => {
     const deleted = await Template.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ success: false, message: "Template not found" });
 
-    // try to cleanup cloudinary if public ids exist
+    // cleanup cloudinary if public ids exist
     try {
-      if (deleted.filePublicId) {
-        await cloudinary.uploader.destroy(deleted.filePublicId, { resource_type: "auto" });
-      }
-      if (deleted.frameFilePublicId) {
-        await cloudinary.uploader.destroy(deleted.frameFilePublicId, { resource_type: "image" });
-      }
+      if (deleted.filePublicId) await cloudinary.uploader.destroy(deleted.filePublicId, { resource_type: "auto" });
+      if (deleted.frameFilePublicId) await cloudinary.uploader.destroy(deleted.frameFilePublicId, { resource_type: "image" });
     } catch (cloudErr) {
       console.warn("Cloudinary cleanup failed:", cloudErr.message || cloudErr);
     }
@@ -872,3 +869,98 @@ exports.deleteTemplate = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// BULK DELETE
+exports.bulkDeleteTemplates = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: "No ids provided" });
+
+    // fetch documents to cleanup cloudinary
+    const docs = await Template.find({ _id: { $in: ids } });
+    await Template.deleteMany({ _id: { $in: ids } });
+
+    // try cleanup cloudinary
+    for (const d of docs) {
+      try {
+        if (d.filePublicId) await cloudinary.uploader.destroy(d.filePublicId, { resource_type: "auto" });
+        if (d.frameFilePublicId) await cloudinary.uploader.destroy(d.frameFilePublicId, { resource_type: "image" });
+      } catch (e) {
+        console.warn("Cloudinary cleanup error:", e.message || e);
+      }
+    }
+
+    return res.json({ success: true, deleted: ids.length });
+  } catch (err) {
+    console.error("Bulk Delete Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// IMPORT CSV (expects array of objects in req.body)
+exports.importTemplatesFromCsv = async (req, res) => {
+  try {
+    const rows = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(400).json({ success: false, message: "No rows provided" });
+
+    const created = [];
+    for (const r of rows) {
+      // map CSV fields: allow parent by name -> resolve to ids if possible
+      const title = r.title || r.Title || "";
+      if (!title) continue;
+
+      const type = r.type || r.Type || "video";
+      const status = r.status || r.Status || "active";
+      const profilePosition = r.profilePosition || r.profile_position || "";
+      const profileSize = r.profileSize || r.profile_size || "";
+      const profileShape = r.profileShape || r.profile_shape || "";
+      const transitionPlacement = r.transitionPlacement || r.transition_placement || "below";
+      const transitionType = r.transitionType || r.transition_type || "fade";
+      const orientation = r.orientation || "landscape";
+
+      let categoryId = null;
+      let politicianId = null;
+      let religiousId = null;
+
+      const parentVal = (r.parent || r.Parent || "").trim();
+      if (parentVal) {
+        // try find in categories -> politicians -> religious by title/name
+        const cat = await Category.findOne({ $or: [{ title: parentVal }, { name: parentVal }] }).lean();
+        if (cat) categoryId = cat._id;
+        else {
+          const pol = await Politician.findOne({ $or: [{ title: parentVal }, { name: parentVal }] }).lean();
+          if (pol) politicianId = pol._id;
+          else {
+            const rel = await Religious.findOne({ $or: [{ title: parentVal }, { name: parentVal }] }).lean();
+            if (rel) religiousId = rel._id;
+          }
+        }
+      }
+
+      const doc = {
+        title,
+        type,
+        status,
+        category: categoryId,
+        politician: politicianId,
+        religious: religiousId,
+        profilePosition,
+        profileSize,
+        profileShape,
+        transitionPlacement,
+        transitionType,
+        orientation,
+      };
+
+      const createdTpl = await Template.create(doc);
+      created.push(createdTpl);
+    }
+
+    return res.json({ success: true, created: created.length });
+  } catch (err) {
+    console.error("Import Templates Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
