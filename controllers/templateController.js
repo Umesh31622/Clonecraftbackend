@@ -12,7 +12,7 @@ const getFileInfo = (filesObj, fieldName) => {
   const f = arr[0];
 
   return {
-    url: f.path,
+    url: f.path, 
     public_id: f.filename
   };
 };
@@ -201,5 +201,6 @@ exports.importTemplatesFromCsv = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 
