@@ -1,0 +1,21 @@
+NODE_ENV=development
+PORT=7000
+FRONTEND_URL=http://localhost:3000
+
+# MONGODB_URI=mongodb+srv://uksharma20000_db_user:Umesh%40123@cluster0.bhfcut6.mongodb.net/crafto?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://uksharma20000_db_user:umesh321@cluster0.vfqqqsf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+JWT_SECRET=crafto_clone_jwt_secret_key
+JWT_EXPIRE=30d
+
+# Gmail SMTP (Use App Password, not normal Gmail password)
+EMAIL_USER=shorinku22@gmail.com
+EMAIL_PASS=hiuurmqypquksotw
+
+
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_RXG1QPP8Jk082R
+RAZORPAY_SECRET=ITONDbGrdwPZHU92Xmlm2n0P
+CLOUDINARY_CLOUD_NAME=douvimvgq
+CLOUDINARY_API_KEY=644643616552741
+CLOUDINARY_API_SECRET=dlAoV6PbRRXNIBDjC9Cj7uvQjnw
